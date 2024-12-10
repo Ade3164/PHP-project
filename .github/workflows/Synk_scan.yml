@@ -1,0 +1,53 @@
+name: Snyk PHP Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  snyk:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out the repository
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      # Set up PHP environment
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.x' # Adjust this based on your project's PHP version
+
+      # Install PHP dependencies
+      - name: Install PHP Dependencies
+        run: |
+          if [ -f composer.json ]; then
+            composer install
+          fi
+
+      # Install Snyk
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      # Authenticate Snyk
+      - name: Authenticate Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk auth $SNYK_TOKEN
+
+      # Run Snyk test for PHP projects
+      - name: Run Snyk Test
+        run: |
+          snyk test --file=composer.json --json-file-output=snyk_report.json --severity-threshold=low
+
+      # Upload Snyk scan results as an artifact
+      - name: Upload Snyk Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: snyk-report
+          path: snyk_report.json
