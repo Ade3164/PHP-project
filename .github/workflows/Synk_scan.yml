@@ -1,4 +1,4 @@
-name: Snyk Python Scan
+name: Snyk PHP Scan
 
 on:
   push:
@@ -17,17 +17,22 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      # Set up Python environment
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      # Set up PHP environment
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
         with:
-          python-version: '3.x'  # Adjust based on your project's Python version
+          php-version: '8.x'  # Adjust this based on your project's PHP version
 
-      # Install Python dependencies
+      # Install Composer
+      - name: Install Composer
+        run: |
+          curl -sS https://getcomposer.org/installer | php
+          sudo mv composer.phar /usr/local/bin/composer
+
+      # Install dependencies using Composer
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f composer.json ]; then composer install; fi
 
       # Install Snyk
       - name: Install Snyk
@@ -39,29 +44,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk auth $SNYK_TOKEN
 
-      # Run Snyk Test for Python
-      - name: Run Snyk Test for Python
+      # Run Snyk test for PHP projects
+      - name: Run Snyk Test
         run: |
-          snyk test --file=requirements.txt --json-file-output=snyk_report.json --severity-threshold=low
+          snyk test --file=composer.json --json-file-output=snyk_report.json --severity-threshold=low
 
-      # Install Composer (for PHP library scan)
-      - name: Install Composer
-        run: |
-          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-          php -r "if (hash_file('sha384', 'composer-setup.php') === 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-          php composer-setup.php
-          php -r "unlink('composer-setup.php');"
-
-      # Run Snyk Test for PHP (assuming you have a composer.json file)
-      - name: Run Snyk Test for PHP
-        run: |
-          snyk test --file=composer.json --json-file-output=snyk_php_report.json --severity-threshold=low
-
-      # Upload Snyk Reports
-      - name: Upload Snyk Reports
+      # Upload Snyk scan results as an artifact
+      - name: Upload Snyk Report
         uses: actions/upload-artifact@v3
         with:
-          name: snyk-reports
-          path: |
-            snyk_report.json
-            snyk_php_report.json
+          name: snyk-report
+          path: snyk_report.json
