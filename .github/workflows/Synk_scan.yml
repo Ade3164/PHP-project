@@ -44,10 +44,10 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk auth $SNYK_TOKEN
 
-      # Run Snyk test for PHP projects
+      # Run Snyk test with --all-projects flag for PHP projects
       - name: Run Snyk Test
         run: |
-          snyk test --file=composer.json --json-file-output=snyk_report.json --severity-threshold=low
+          snyk test --all-projects --json-file-output=snyk_report.json --severity-threshold=low
 
       # Upload Snyk scan results as an artifact
       - name: Upload Snyk Report
